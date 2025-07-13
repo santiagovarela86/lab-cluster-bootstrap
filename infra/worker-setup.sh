@@ -41,6 +41,7 @@ until kubectl cluster-info &>/dev/null; do
   echo "[ ] API server not ready yet, sleeping 5s..."
   sleep 5
 done
+
 kubectl config set-cluster default --server="https://$MASTER_IP:6443" --kubeconfig="$KUBECONFIG"
 
 wait_for_node_ready
