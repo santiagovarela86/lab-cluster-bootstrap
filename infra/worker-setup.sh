@@ -16,7 +16,7 @@ wait_for_node_ready() {
 
 label_node() {
   echo "[+] Labeling node $HOSTNAME..."
-  kubectl label node "$HOSTNAME" monitoring=enabled || true
+  kubectl label node "$HOSTNAME" monitoring=enabled node-role.kubernetes.io/worker= || true
   echo "[✓] Node $HOSTNAME labeled."
 }
 

@@ -1,6 +1,3 @@
-# reset.sh
-# Destroys and fully rebuilds the lab environment
-
 #!/bin/bash
 set -e
 
