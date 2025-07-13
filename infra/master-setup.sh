@@ -28,7 +28,7 @@ mkdir -p "$SHARED_PATH"
 sudo cat /var/lib/rancher/k3s/server/node-token > "$SHARED_TOKEN_PATH"
 sudo cp /etc/rancher/k3s/k3s.yaml "$SHARED_KUBECONFIG_PATH"
 sudo chown vagrant:vagrant "$SHARED_KUBECONFIG_PATH"
-sed -i "s|server: .*|server: https://$MASTER_IP:6443|" "$SHARED_KUBECONFIG_PATH"
+kubectl config set-cluster default --server="https://$MASTER_IP:6443" --kubeconfig="$SHARED_KUBECONFIG_PATH"
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 wait_for_node_ready

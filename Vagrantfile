@@ -8,8 +8,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     node.vm.network "private_network", ip: "192.168.56.11"
     node.vm.provider "virtualbox" do |vb|
       vb.name = "node1"
-      vb.memory = 2048
-      vb.cpus = 2
+      vb.memory = 1024
+      vb.cpus = 1
     end
     node.vm.synced_folder "./shared", "/shared"
     node.vm.provision "shell", path: "./infra/master-setup.sh"
@@ -21,7 +21,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.network "private_network", ip: "192.168.56.1#{i + 2}"
       node.vm.provider "virtualbox" do |vb|
         vb.name = name
-        vb.memory = 2048
+        vb.memory = 1024
         vb.cpus = 1
       end
       node.vm.synced_folder "./shared", "/shared"

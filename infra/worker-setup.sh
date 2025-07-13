@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 MASTER_IP="192.168.56.11"
