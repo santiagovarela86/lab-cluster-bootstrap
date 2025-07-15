@@ -23,8 +23,7 @@
     timeout 60 bash -c '
       until curl -k https://{{ hostvars["node1"].ansible_host }}:6443/ping; do
         sleep 3;
-      done
-    '
+      done'
   changed_when: false
 
 - name: Check if K3s agent is already installed
@@ -69,3 +68,12 @@
   environment:
     KUBECONFIG: /shared/kubeconfig.yaml
   when: '"monitoring=enabled" not in existing_labels.stdout'
+
+- name: Export KUBECONFIG in .bashrc
+  lineinfile:
+    path: /home/vagrant/.bashrc
+    line: 'export KUBECONFIG=/shared/kubeconfig.yaml'
+    insertafter: EOF
+    state: present
+  become: true
+  become_user: vagrant
