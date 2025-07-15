@@ -27,7 +27,7 @@
     '
   changed_when: false
 
-- name: Check if K3s agent service exists
+- name: Check if K3s agent is already installed
   stat:
     path: /etc/systemd/system/k3s-agent.service
   register: k3s_agent_installed

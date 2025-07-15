@@ -26,8 +26,7 @@
   when: not k3s_installed.stat.exists
 
 - name: Check if kubeconfig points to the right server
-  shell: |
-    grep -q "{{ ansible_host }}" /shared/kubeconfig.yaml
+  shell: grep -q "{{ ansible_host }}" /shared/kubeconfig.yaml
   register: kubeconfig_check
   failed_when: false
   changed_when: kubeconfig_check.rc != 0
