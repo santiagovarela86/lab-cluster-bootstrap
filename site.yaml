@@ -1,0 +1,15 @@
+---
+- hosts: node1
+  become: true
+  roles:
+    - master
+
+- hosts: node2
+  become: true
+  roles:
+    - worker
+
+- hosts: node3
+  become: true
+  roles:
+    - worker

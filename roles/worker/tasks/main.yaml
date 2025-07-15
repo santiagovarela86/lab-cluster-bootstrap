@@ -1,0 +1,71 @@
+---
+- name: Wait for token file from master
+  wait_for:
+    path: /shared/token
+    timeout: 180
+
+- name: Wait for kubeconfig file from master
+  wait_for:
+    path: /shared/kubeconfig.yaml
+    timeout: 180
+
+- name: Read token from shared folder
+  slurp:
+    src: /shared/token
+  register: k3s_token_raw
+
+- name: Decode token
+  set_fact:
+    k3s_token: "{{ k3s_token_raw.content | b64decode | trim }}"
+
+- name: Wait for API server to become reachable
+  shell: |
+    timeout 60 bash -c '
+      until curl -k https://{{ hostvars["node1"].ansible_host }}:6443/ping; do
+        sleep 3;
+      done
+    '
+  changed_when: false
+
+- name: Check if K3s agent service exists
+  stat:
+    path: /etc/systemd/system/k3s-agent.service
+  register: k3s_agent_installed
+
+- name: Install K3s agent
+  shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent" sh -
+  environment:
+    K3S_URL: "https://{{ hostvars['node1'].ansible_host }}:6443"
+    K3S_TOKEN: "{{ k3s_token }}"
+  args:
+    executable: /bin/bash
+  when: not k3s_agent_installed.stat.exists
+
+- name: Ensure k3s-agent service is enabled and running
+  systemd:
+    name: k3s-agent
+    enabled: true
+    state: started
+
+- name: Wait until node joins the cluster
+  shell: |
+    kubectl get node {{ inventory_hostname }} --kubeconfig=/shared/kubeconfig.yaml --no-headers
+  register: node_check
+  retries: 10
+  delay: 6
+  until: node_check.rc == 0
+  changed_when: false
+  failed_when: node_check.rc != 0
+
+- name: Get existing labels for worker node
+  shell: kubectl get node {{ inventory_hostname }} --kubeconfig=/shared/kubeconfig.yaml --show-labels
+  register: existing_labels
+  changed_when: false
+
+- name: Label worker node if not labeled
+  shell: >
+    kubectl label node {{ inventory_hostname }} monitoring=enabled node-role.kubernetes.io/worker=
+  environment:
+    KUBECONFIG: /shared/kubeconfig.yaml
+  when: '"monitoring=enabled" not in existing_labels.stdout'

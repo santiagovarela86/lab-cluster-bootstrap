@@ -1,0 +1,15 @@
+all:
+  hosts:
+    node1:
+      ansible_host: 192.168.56.11
+      role: master
+    node2:
+      ansible_host: 192.168.56.12
+      role: worker
+    node3:
+      ansible_host: 192.168.56.13
+      role: worker
+  vars:
+    ansible_user: vagrant
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    ansible_ssh_private_key_file: ~/.ssh/{{ inventory_hostname }}_key

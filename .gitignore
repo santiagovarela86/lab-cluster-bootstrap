@@ -1,28 +1,5 @@
-# Vagrant + VirtualBox
 .vagrant/
 node*/
-*.box
-
-# Shared folders (used for token passing, not needed in git)
 shared/
-
-# Shell and log files
-*.log
-*.sh~
-
-# OS-specific
-.DS_Store
-Thumbs.db
-
-# IDEs/editors
-*.swp
-*.swo
-*.bak
-.idea/
-.vscode/
-
-# Node, Python, etc. (if sample apps are added later)
-node_modules/
-dist/
-__pycache__/
-.env
+*cloudimg*
+*.img
