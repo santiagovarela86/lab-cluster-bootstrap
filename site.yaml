@@ -1,15 +1,12 @@
 ---
 - hosts: node1
   become: true
+  serial: 1
   roles:
     - master
 
-- hosts: node2
+- hosts: node2:node3
   become: true
-  roles:
-    - worker
-
-- hosts: node3
-  become: true
+  serial: 1
   roles:
     - worker
