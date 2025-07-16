@@ -9,40 +9,36 @@
     curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }} --write-kubeconfig-mode=644 --disable=traefik" sh -
   when: not k3s_installed.stat.exists
 
-- name: Check if node-token already saved
-  stat:
-    path: /shared/token
-  register: token_file
-
-- name: Save node-token to shared folder
-  shell: cat /var/lib/rancher/k3s/server/node-token > /shared/token
-  when: not token_file.stat.exists and not k3s_installed.stat.exists
-
-- name: Save kubeconfig to shared folder
-  copy:
-    src: /etc/rancher/k3s/k3s.yaml
-    dest: /shared/kubeconfig.yaml
-    remote_src: yes
-  when: not k3s_installed.stat.exists
+- name: Wait for API server on master to become reachable
+  shell: |
+    timeout 60 bash -c '
+      until curl -k https://{{ ansible_host }}:6443/ping; do
+        sleep 3;
+      done'
+  changed_when: false
 
 - name: Check if kubeconfig points to the right server
-  shell: grep -q "{{ ansible_host }}" /shared/kubeconfig.yaml
+  shell: grep -q "{{ ansible_host }}" /etc/rancher/k3s/k3s.yaml
   register: kubeconfig_check
   failed_when: false
   changed_when: kubeconfig_check.rc != 0
 
 - name: Update kubeconfig server IP
   shell: >
-    kubectl config set-cluster default --server=https://{{ ansible_host }}:6443 --kubeconfig=/shared/kubeconfig.yaml
+    kubectl config set-cluster default --server=https://{{ ansible_host }}:6443 --kubeconfig=/etc/rancher/k3s/k3s.yaml
   when: kubeconfig_check.rc != 0
 
 - name: Get current labels for master node
-  shell: kubectl get node {{ inventory_hostname }} --kubeconfig=/shared/kubeconfig.yaml --show-labels
+  shell: |
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && \
+    kubectl get node {{ inventory_hostname }} --show-labels
   register: label_output
   changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
 - name: Label master node
-  shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/shared/kubeconfig.yaml
+  shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/etc/rancher/k3s/k3s.yaml
   when: '"monitoring=enabled" not in label_output.stdout'
 
 - name: Check if Helm is already installed
@@ -54,3 +50,17 @@
   shell: |
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   when: not helm_installed.stat.exists
+
+- name: Fetch kubeconfig to control node
+  fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: ./tmp/kubeconfig.yaml
+    flat: yes
+  when: k3s_installed.stat.exists
+
+- name: Fetch node-token to control node
+  fetch:
+    src: /var/lib/rancher/k3s/server/node-token
+    dest: ./tmp/token
+    flat: yes
+  when: k3s_installed.stat.exists

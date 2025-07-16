@@ -11,7 +11,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       vb.memory = 1024
       vb.cpus = 1
     end
-    node.vm.synced_folder "./shared", "/shared"
   end
 
   ["node2", "node3"].each_with_index do |name, i|
@@ -23,7 +22,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vb.memory = 1024
         vb.cpus = 1
       end
-      node.vm.synced_folder "./shared", "/shared"
     end
   end
 end
