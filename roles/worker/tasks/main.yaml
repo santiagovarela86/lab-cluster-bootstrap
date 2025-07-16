@@ -1,13 +1,25 @@
 ---
+- name: Check if token already exists
+  stat:
+    path: /tmp/token
+  register: token_on_worker
+
+- name: Check if kubeconfig already exists
+  stat:
+    path: /tmp/kubeconfig.yaml
+  register: kubeconfig_on_worker
+
 - name: Copy token to worker
   copy:
     src: ./tmp/token
     dest: /tmp/token
+  when: not token_on_worker.stat.exists
 
 - name: Copy kubeconfig to worker
   copy:
     src: ./tmp/kubeconfig.yaml
     dest: /tmp/kubeconfig.yaml
+  when: not kubeconfig_on_worker.stat.exists
 
 - name: Read token from file
   slurp:
@@ -66,8 +78,15 @@
     KUBECONFIG: /tmp/kubeconfig.yaml
   when: '"monitoring=enabled" not in existing_labels.stdout'
 
+- name: Ensure KUBECONFIG is not already exported in profile
+  shell: grep -q 'KUBECONFIG=/tmp/kubeconfig.yaml' /etc/profile.d/kubeconfig.sh
+  register: kubeconfig_already_set
+  ignore_errors: true
+  changed_when: false
+
 - name: Set KUBECONFIG globally for vagrant user
   copy:
     content: 'export KUBECONFIG=/tmp/kubeconfig.yaml'
     dest: /etc/profile.d/kubeconfig.sh
     mode: '0644'
+  when: kubeconfig_already_set.rc != 0

@@ -29,13 +29,9 @@
   when: kubeconfig_check.rc != 0
 
 - name: Get current labels for master node
-  shell: |
-    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && \
-    kubectl get node {{ inventory_hostname }} --show-labels
+  shell: KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get node {{ inventory_hostname }} --show-labels
   register: label_output
   changed_when: false
-  environment:
-    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
 - name: Label master node
   shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/etc/rancher/k3s/k3s.yaml
@@ -51,16 +47,30 @@
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   when: not helm_installed.stat.exists
 
+- name: Check if kubeconfig already exists locally
+  stat:
+    path: ./tmp/kubeconfig.yaml
+  register: local_kubeconfig
+  delegate_to: localhost
+  become: false
+
+- name: Check if token already exists locally
+  stat:
+    path: ./tmp/token
+  register: local_token
+  delegate_to: localhost
+  become: false
+
 - name: Fetch kubeconfig to control node
   fetch:
     src: /etc/rancher/k3s/k3s.yaml
     dest: ./tmp/kubeconfig.yaml
     flat: yes
-  when: k3s_installed.stat.exists
+  when: not local_kubeconfig.stat.exists and k3s_installed.stat.exists
 
 - name: Fetch node-token to control node
   fetch:
     src: /var/lib/rancher/k3s/server/node-token
     dest: ./tmp/token
     flat: yes
-  when: k3s_installed.stat.exists
+  when: not local_token.stat.exists and k3s_installed.stat.exists
