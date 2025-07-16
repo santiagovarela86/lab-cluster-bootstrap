@@ -1,5 +1,6 @@
 .vagrant/
 node*/
 shared/
-*cloudimg*
+*cloudimg*/
 *.vmdk
+*.vbox
