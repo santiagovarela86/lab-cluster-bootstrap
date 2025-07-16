@@ -77,3 +77,10 @@
     state: present
   become: true
   become_user: vagrant
+
+- name: Source bashrc to load KUBECONFIG
+  shell: source /home/vagrant/.bashrc
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: vagrant
