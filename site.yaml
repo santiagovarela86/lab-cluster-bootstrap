@@ -6,6 +6,7 @@
   roles:
     - master
     - helm
+    # - istio
     - monitoring
 
 - name: Setup worker nodes

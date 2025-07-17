@@ -1,0 +1,104 @@
+---
+- name: Check if Istio Helm repo is already added
+  shell: helm repo list | grep -q '^istio[[:space:]]'
+  register: istio_repo_check
+  changed_when: false
+  failed_when: false
+
+- name: Add Istio Helm repo if not present
+  shell: |
+    helm repo add istio https://istio-release.storage.googleapis.com/charts
+    helm repo update
+  args:
+    executable: /bin/bash
+  when: istio_repo_check.rc != 0
+
+- name: Check status of istio-base
+  shell: helm status istio-base -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  register: istio_base_status
+  failed_when: false
+  changed_when: false
+
+- name: Uninstall istio-base if failed
+  shell: helm uninstall istio-base -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when: "'STATUS: failed' in istio_base_status.stdout"
+  args:
+    executable: /bin/bash
+
+- name: Install istio-base
+  shell: |
+    helm install istio-base istio/base -n istio-system --create-namespace \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when: "'STATUS: deployed' not in istio_base_status.stdout"
+  args:
+    executable: /bin/bash
+
+- name: Get node where istiod is running
+  shell: |
+    kubectl get pod -n istio-system -l app=istiod \
+      -o jsonpath="{.items[0].spec.nodeName}" \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml || echo "none"
+  register: istiod_node
+  changed_when: false
+  failed_when: false
+
+- name: Get name of master node
+  shell: |
+    kubectl get nodes -l node-role.kubernetes.io/master \
+      -o jsonpath="{.items[0].metadata.name}" \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml
+  register: master_node
+  changed_when: false
+  failed_when: false
+
+- name: Check if istiod is installed
+  shell: helm list -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml | grep -q '^istiod[[:space:]]'
+  register: istiod_release_check
+  changed_when: false
+  failed_when: false
+
+- name: Uninstall istiod if installed and not on master
+  shell: helm uninstall istiod -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when:
+    - istiod_release_check.rc == 0
+    - istiod_node.stdout != master_node.stdout
+  args:
+    executable: /bin/bash
+
+- name: Refresh status of istiod (after uninstall)
+  shell: helm status istiod -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  register: istiod_status
+  failed_when: false
+  changed_when: false
+
+- name: Install istiod with demo profile (only if not deployed or not on master)
+  shell: |
+    helm install istiod istio/istiod -n istio-system \
+      --set profile=demo \
+      --set global.istioNamespace=istio-system \
+      --set global.defaultNodeSelector."node-role\.kubernetes\.io/master"="true" \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when:
+    - "'STATUS: deployed' not in istiod_status.stdout"
+  args:
+    executable: /bin/bash
+
+- name: Check status of ingress gateway
+  shell: helm status istio-ingress -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  register: ingress_status
+  failed_when: false
+  changed_when: false
+
+- name: Uninstall ingress gateway if failed
+  shell: helm uninstall istio-ingress -n istio-system --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when: "'STATUS: failed' in ingress_status.stdout"
+  args:
+    executable: /bin/bash
+
+- name: Install Istio ingress gateway
+  shell: |
+    helm install istio-ingress istio/gateway -n istio-system \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when: "'STATUS: deployed' not in ingress_status.stdout"
+  args:
+    executable: /bin/bash
