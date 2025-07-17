@@ -45,7 +45,11 @@
 
 - name: Install K3s agent
   shell: |
-    curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['node1'].ansible_host }}:6443 K3S_TOKEN={{ k3s_token }} sh -
+    curl -sfL https://get.k3s.io | \
+    K3S_URL=https://{{ hostvars['node1'].ansible_host }}:6443 \
+    K3S_TOKEN={{ k3s_token }} \
+    INSTALL_K3S_EXEC="--node-ip={{ ansible_host }}" \
+    sh -
   args:
     executable: /bin/bash
   when: not k3s_agent_installed.stat.exists
@@ -72,8 +76,6 @@
   changed_when: false
 
 - name: Label worker node if not labeled
-  # shell: >
-  #   kubectl label node {{ inventory_hostname }} monitoring=enabled node-role.kubernetes.io/worker=
   shell: >
     kubectl label node {{ inventory_hostname }} node-role.kubernetes.io/worker=
   environment:

@@ -5,8 +5,10 @@
   register: k3s_installed
 
 - name: Install K3s on master
-  shell: >
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san {{ ansible_host }} --write-kubeconfig-mode=644 --disable=traefik" sh -
+  shell: |
+    curl -sfL https://get.k3s.io -o install.sh
+    export INSTALL_K3S_EXEC="--tls-san {{ ansible_host }} --node-ip {{ ansible_host }} --write-kubeconfig-mode=644 --disable traefik"
+    sh install.sh
   when: not k3s_installed.stat.exists
 
 - name: Wait for API server on master to become reachable
@@ -28,39 +30,21 @@
     kubectl config set-cluster default --server=https://{{ ansible_host }}:6443 --kubeconfig=/etc/rancher/k3s/k3s.yaml
   when: kubeconfig_check.rc != 0
 
-# - name: Get current labels for master node
-#   shell: KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get node {{ inventory_hostname }} --show-labels
-#   register: label_output
-#   changed_when: false
+- name: Check if KUBECONFIG profile file exists
+  stat:
+    path: /etc/profile.d/kubeconfig.sh
+  register: kubeconfig_profile_file
 
-# - name: Label master node
-#   shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/etc/rancher/k3s/k3s.yaml
-#   when: '"monitoring=enabled" not in label_output.stdout'
+- name: Check if KUBECONFIG is already set
+  shell: grep -q 'KUBECONFIG=/etc/rancher/k3s/k3s.yaml' /etc/profile.d/kubeconfig.sh
+  register: kubeconfig_already_set
+  changed_when: false
+  failed_when: false
+  when: kubeconfig_profile_file.stat.exists
 
-# - name: Check if kubeconfig already exists locally
-#   stat:
-#     path: ./tmp/kubeconfig.yaml
-#   register: local_kubeconfig
-#   delegate_to: localhost
-#   become: false
-
-# - name: Check if token already exists locally
-#   stat:
-#     path: ./tmp/token
-#   register: local_token
-#   delegate_to: localhost
-#   become: false
-
-# - name: Fetch kubeconfig to control node
-#   fetch:
-#     src: /etc/rancher/k3s/k3s.yaml
-#     dest: ./tmp/kubeconfig.yaml
-#     flat: yes
-#   when: not local_kubeconfig.stat.exists and not k3s_installed.stat.exists
-
-# - name: Fetch node-token to control node
-#   fetch:
-#     src: /var/lib/rancher/k3s/server/node-token
-#     dest: ./tmp/token
-#     flat: yes
-#   when: not local_token.stat.exists and not k3s_installed.stat.exists
+- name: Set KUBECONFIG globally for vagrant user
+  copy:
+    content: 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'
+    dest: /etc/profile.d/kubeconfig.sh
+    mode: '0644'
+  when: not kubeconfig_profile_file.stat.exists or kubeconfig_already_set.rc != 0
