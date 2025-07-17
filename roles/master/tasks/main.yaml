@@ -66,11 +66,11 @@
     src: /etc/rancher/k3s/k3s.yaml
     dest: ./tmp/kubeconfig.yaml
     flat: yes
-  when: not local_kubeconfig.stat.exists and k3s_installed.stat.exists
+  when: not local_kubeconfig.stat.exists and not k3s_installed.stat.exists
 
 - name: Fetch node-token to control node
   fetch:
     src: /var/lib/rancher/k3s/server/node-token
     dest: ./tmp/token
     flat: yes
-  when: not local_token.stat.exists and k3s_installed.stat.exists
+  when: not local_token.stat.exists and not k3s_installed.stat.exists
