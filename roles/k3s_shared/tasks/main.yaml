@@ -1,0 +1,44 @@
+---
+# Check if kubeconfig already exists on worker
+- name: Check if kubeconfig already exists on worker
+  ansible.builtin.stat:
+    path: /tmp/kubeconfig.yaml
+  register: kubeconfig_stat
+
+# Check if token already exists on worker
+- name: Check if token already exists on worker
+  ansible.builtin.stat:
+    path: /tmp/token
+  register: token_stat
+
+# Slurp kubeconfig from master node if not exists
+- name: Slurp kubeconfig from master
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  delegate_to: "{{ groups['master'][0] }}"
+  register: master_kubeconfig_slurp
+  when: not kubeconfig_stat.stat.exists
+
+# Slurp node-token from master node
+- name: Slurp node-token from master
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  delegate_to: "{{ groups['master'][0] }}"
+  register: master_token_slurp
+  when: not token_stat.stat.exists
+
+# Write kubeconfig to worker node if not exists
+- name: Write kubeconfig to worker node
+  ansible.builtin.copy:
+    content: "{{ master_kubeconfig_slurp.content | b64decode }}"
+    dest: /tmp/kubeconfig.yaml
+    mode: '0600'
+  when: not kubeconfig_stat.stat.exists
+
+# Write token to worker node if not exists
+- name: Write token to worker node
+  ansible.builtin.copy:
+    content: "{{ master_token_slurp.content | b64decode }}"
+    dest: /tmp/token
+    mode: '0600'
+  when: not token_stat.stat.exists

@@ -1,12 +1,17 @@
 ---
-- hosts: node1
+- name: Setup control plane
+  hosts: node1
   become: true
   serial: 1
   roles:
     - master
+    - helm
+    - monitoring
 
-- hosts: node2:node3
+- name: Setup workers
+  hosts: node2:node3:node4
   become: true
   serial: 1
   roles:
+    - k3s_shared
     - worker

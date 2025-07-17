@@ -1,14 +1,18 @@
+---
 all:
-  hosts:
-    node1:
-      ansible_host: 192.168.56.11
-      role: master
-    node2:
-      ansible_host: 192.168.56.12
-      role: worker
-    node3:
-      ansible_host: 192.168.56.13
-      role: worker
+  children:
+    master:
+      hosts:
+        node1:
+          ansible_host: 192.168.56.11
+    worker:
+      hosts:
+        node2:
+          ansible_host: 192.168.56.12
+        node3:
+          ansible_host: 192.168.56.13
+        node4:
+          ansible_host: 192.168.56.14
   vars:
     ansible_user: vagrant
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

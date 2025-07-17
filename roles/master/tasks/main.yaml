@@ -28,49 +28,39 @@
     kubectl config set-cluster default --server=https://{{ ansible_host }}:6443 --kubeconfig=/etc/rancher/k3s/k3s.yaml
   when: kubeconfig_check.rc != 0
 
-- name: Get current labels for master node
-  shell: KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get node {{ inventory_hostname }} --show-labels
-  register: label_output
-  changed_when: false
+# - name: Get current labels for master node
+#   shell: KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get node {{ inventory_hostname }} --show-labels
+#   register: label_output
+#   changed_when: false
 
-- name: Label master node
-  shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/etc/rancher/k3s/k3s.yaml
-  when: '"monitoring=enabled" not in label_output.stdout'
+# - name: Label master node
+#   shell: kubectl label node {{ inventory_hostname }} monitoring=enabled --kubeconfig=/etc/rancher/k3s/k3s.yaml
+#   when: '"monitoring=enabled" not in label_output.stdout'
 
-- name: Check if Helm is already installed
-  stat:
-    path: /usr/local/bin/helm
-  register: helm_installed
+# - name: Check if kubeconfig already exists locally
+#   stat:
+#     path: ./tmp/kubeconfig.yaml
+#   register: local_kubeconfig
+#   delegate_to: localhost
+#   become: false
 
-- name: Install Helm
-  shell: |
-    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-  when: not helm_installed.stat.exists
+# - name: Check if token already exists locally
+#   stat:
+#     path: ./tmp/token
+#   register: local_token
+#   delegate_to: localhost
+#   become: false
 
-- name: Check if kubeconfig already exists locally
-  stat:
-    path: ./tmp/kubeconfig.yaml
-  register: local_kubeconfig
-  delegate_to: localhost
-  become: false
+# - name: Fetch kubeconfig to control node
+#   fetch:
+#     src: /etc/rancher/k3s/k3s.yaml
+#     dest: ./tmp/kubeconfig.yaml
+#     flat: yes
+#   when: not local_kubeconfig.stat.exists and not k3s_installed.stat.exists
 
-- name: Check if token already exists locally
-  stat:
-    path: ./tmp/token
-  register: local_token
-  delegate_to: localhost
-  become: false
-
-- name: Fetch kubeconfig to control node
-  fetch:
-    src: /etc/rancher/k3s/k3s.yaml
-    dest: ./tmp/kubeconfig.yaml
-    flat: yes
-  when: not local_kubeconfig.stat.exists and not k3s_installed.stat.exists
-
-- name: Fetch node-token to control node
-  fetch:
-    src: /var/lib/rancher/k3s/server/node-token
-    dest: ./tmp/token
-    flat: yes
-  when: not local_token.stat.exists and not k3s_installed.stat.exists
+# - name: Fetch node-token to control node
+#   fetch:
+#     src: /var/lib/rancher/k3s/server/node-token
+#     dest: ./tmp/token
+#     flat: yes
+#   when: not local_token.stat.exists and not k3s_installed.stat.exists
