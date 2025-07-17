@@ -82,21 +82,21 @@
     KUBECONFIG: /tmp/kubeconfig.yaml
   when: '"node-role.kubernetes.io/worker=" not in existing_labels.stdout'
 
-- name: Check if KUBECONFIG profile file exists
-  stat:
-    path: /etc/profile.d/kubeconfig.sh
-  register: kubeconfig_profile_file
+# - name: Check if KUBECONFIG profile file exists
+#   stat:
+#     path: /etc/profile.d/kubeconfig.sh
+#   register: kubeconfig_profile_file
 
-- name: Check if KUBECONFIG is already set
-  shell: grep -q 'KUBECONFIG=/tmp/kubeconfig.yaml' /etc/profile.d/kubeconfig.sh
-  register: kubeconfig_already_set
-  changed_when: false
-  failed_when: false
-  when: kubeconfig_profile_file.stat.exists
+# - name: Check if KUBECONFIG is already set
+#   shell: grep -q 'KUBECONFIG=/tmp/kubeconfig.yaml' /etc/profile.d/kubeconfig.sh
+#   register: kubeconfig_already_set
+#   changed_when: false
+#   failed_when: false
+#   when: kubeconfig_profile_file.stat.exists
 
-- name: Set KUBECONFIG globally for vagrant user
-  copy:
-    content: 'export KUBECONFIG=/tmp/kubeconfig.yaml'
-    dest: /etc/profile.d/kubeconfig.sh
-    mode: '0644'
-  when: not kubeconfig_profile_file.stat.exists or kubeconfig_already_set.rc != 0
+# - name: Set KUBECONFIG globally for vagrant user
+#   copy:
+#     content: 'export KUBECONFIG=/tmp/kubeconfig.yaml'
+#     dest: /etc/profile.d/kubeconfig.sh
+#     mode: '0644'
+#   when: not kubeconfig_profile_file.stat.exists or kubeconfig_already_set.rc != 0

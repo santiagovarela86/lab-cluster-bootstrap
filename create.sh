@@ -2,4 +2,4 @@
 set -e
 
 echo "[+] Bringing up fresh environment..."
-vagrant up --parallel
+vagrant up

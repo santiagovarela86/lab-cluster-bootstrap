@@ -6,9 +6,11 @@
 
 - name: Install K3s on master
   shell: |
-    curl -sfL https://get.k3s.io -o install.sh
-    export INSTALL_K3S_EXEC="--tls-san {{ ansible_host }} --node-ip {{ ansible_host }} --write-kubeconfig-mode=644 --disable traefik"
-    sh install.sh
+    curl -sfL https://get.k3s.io | \
+    INSTALL_K3S_EXEC="--tls-san {{ ansible_host }} --node-ip {{ ansible_host }} --write-kubeconfig-mode=644 --disable traefik" \
+    sh -
+  args:
+    executable: /bin/bash
   when: not k3s_installed.stat.exists
 
 - name: Wait for API server on master to become reachable

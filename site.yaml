@@ -1,5 +1,5 @@
 ---
-- name: Setup control plane
+- name: Setup control plane node
   hosts: node1
   become: true
   serial: 1
@@ -8,7 +8,7 @@
     - helm
     - monitoring
 
-- name: Setup workers
+- name: Setup worker nodes
   hosts: node2:node3:node4
   become: true
   serial: 1
