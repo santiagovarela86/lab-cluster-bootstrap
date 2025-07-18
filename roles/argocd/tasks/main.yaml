@@ -1,0 +1,38 @@
+---
+- name: Check if ArgoCD is already installed (by checking argocd-server Deployment silently)
+  shell: |
+    if kubectl get deploy argocd-server -n argocd --kubeconfig /etc/rancher/k3s/k3s.yaml >/dev/null 2>&1; then
+      echo "exists"
+    else
+      echo "missing"
+    fi
+  register: argocd_state
+  changed_when: false
+
+- name: Apply ArgoCD manifests (only if missing)
+  shell: |
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml \
+      --kubeconfig /etc/rancher/k3s/k3s.yaml
+  when: argocd_state.stdout == "missing"
+  args:
+    executable: /bin/bash
+
+- name: Wait for ArgoCD pods to be ready (retry up to 10 times)
+  shell: |
+    for i in {1..10}; do
+      echo "Attempt $i: Checking ArgoCD pods readiness..."
+      NOT_READY=$(kubectl get pods -n argocd --no-headers \
+        --kubeconfig /etc/rancher/k3s/k3s.yaml | grep -v 'Running\|Completed' || true)
+
+      if [ -z "$NOT_READY" ]; then
+        echo "All ArgoCD pods are ready."
+        exit 0
+      fi
+
+      sleep 10
+    done
+
+    echo "ArgoCD pods not ready after multiple retries"
+    exit 1
+  args:
+    executable: /bin/bash

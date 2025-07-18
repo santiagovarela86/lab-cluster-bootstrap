@@ -8,8 +8,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     node.vm.network "private_network", ip: "192.168.56.11"
     node.vm.provider "virtualbox" do |vb|
       vb.name = "node1"
-      vb.memory = 4096
-      vb.cpus = 4
+      vb.memory = 2048
+      vb.cpus = 1
     end
   end
 
@@ -20,7 +20,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.provider "virtualbox" do |vb|
         vb.name = name
         vb.memory = 2048
-        vb.cpus = 2
+        vb.cpus = 1
       end
     end
   end

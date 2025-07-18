@@ -5,9 +5,10 @@
   serial: 1
   roles:
     - master
-    - helm
+    - argocd
+    # - helm
     # - istio
-    - monitoring
+    # - monitoring
 
 - name: Setup worker nodes
   hosts: node2:node3:node4
