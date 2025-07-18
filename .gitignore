@@ -1,7 +1,7 @@
-.vagrant/
-node*/
-shared/
-tmp/
-*cloudimg*/
+.vscode
+.vagrant
+node*
+*cloudimg*
 *.vmdk
 *.vbox
+_deprecate

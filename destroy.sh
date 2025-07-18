@@ -2,4 +2,4 @@
 set -e
 
 echo "[!] Destroying all Vagrant VMs..."
-vagrant destroy -f
+vagrant destroy -f --parallel

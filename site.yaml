@@ -2,18 +2,22 @@
 - name: Setup control plane node
   hosts: node1
   become: true
-  serial: 1
-  roles:
-    - master
+  # serial: 1
+  roles:    
+    - k3s_master
+    - kubeconfig
+    - python    
     - argocd
-    # - helm
-    # - istio
-    # - monitoring
+    # # - helm
+    # # - istio
+    # # - monitoring
 
 - name: Setup worker nodes
   hosts: node2:node3:node4
   become: true
-  serial: 1
+  # serial: 1
   roles:
-    - k3s_shared
-    - worker
+    - k3s_files
+    - k3s_worker
+    - python
+    - labels

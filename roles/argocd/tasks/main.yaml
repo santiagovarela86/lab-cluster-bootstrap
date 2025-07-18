@@ -1,38 +1,54 @@
 ---
-- name: Check if ArgoCD is already installed (by checking argocd-server Deployment silently)
-  shell: |
-    if kubectl get deploy argocd-server -n argocd --kubeconfig /etc/rancher/k3s/k3s.yaml >/dev/null 2>&1; then
-      echo "exists"
-    else
-      echo "missing"
-    fi
+- name: Check if ArgoCD is installed
+  kubernetes.core.k8s_info:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    api_version: apps/v1
+    kind: Deployment
+    name: argocd-server
+    namespace: argocd
   register: argocd_state
+  failed_when: false
   changed_when: false
 
-- name: Apply ArgoCD manifests (only if missing)
-  shell: |
-    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml \
-      --kubeconfig /etc/rancher/k3s/k3s.yaml
-  when: argocd_state.stdout == "missing"
-  args:
-    executable: /bin/bash
+- name: Set ArgoCD installed fact
+  set_fact:
+    argocd_installed: "{{ argocd_state.resources is defined and argocd_state.resources | length > 0 }}"
 
-- name: Wait for ArgoCD pods to be ready (retry up to 10 times)
-  shell: |
-    for i in {1..10}; do
-      echo "Attempt $i: Checking ArgoCD pods readiness..."
-      NOT_READY=$(kubectl get pods -n argocd --no-headers \
-        --kubeconfig /etc/rancher/k3s/k3s.yaml | grep -v 'Running\|Completed' || true)
+- name: Ensure ArgoCD namespace exists
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: argocd
 
-      if [ -z "$NOT_READY" ]; then
-        echo "All ArgoCD pods are ready."
-        exit 0
-      fi
+- name: Install ArgoCD if not installed
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    namespace: argocd
+    state: present
+    src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  when: not argocd_installed
 
-      sleep 10
-    done
+- name: Wait for all ArgoCD pods to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: argocd
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+  register: argocd_pods
+  until: argocd_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == argocd_pods.resources | length
+  retries: 30
+  delay: 10
 
-    echo "ArgoCD pods not ready after multiple retries"
-    exit 1
-  args:
-    executable: /bin/bash
+- name: Load ArgoCD apps manifest from file
+  set_fact:
+    argocd_manifest: "{{ lookup('file', './roles/argocd/files/argo-apps.yaml') | from_yaml }}"
+
+- name: Apply ArgoCD apps manifest using Ansible k8s module (idempotent)
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    state: present
+    definition: "{{ argocd_manifest }}"
+    apply: true
