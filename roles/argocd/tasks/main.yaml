@@ -42,6 +42,48 @@
   retries: 30
   delay: 10
 
+- name: Configure Argo CD to enable helm in Kustomize
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cm
+        namespace: argocd
+      data:
+        kustomize.buildOptions: "--enable-helm"
+
+- name: Restart Argo CD repo-server to apply helm support
+  kubernetes.core.k8s:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+    api_version: apps/v1
+    kind: Deployment
+    name: argocd-repo-server
+    namespace: argocd
+    state: present
+    wait: yes
+    wait_timeout: 120
+    wait_condition:
+      type: Available
+      status: "True"
+  register: repo_server_status
+
+- name: Force rollout restart of repo-server
+  shell: kubectl -n argocd rollout restart deployment argocd-repo-server
+  when: repo_server_status is changed
+
+- name: Wait for all ArgoCD pods to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: argocd
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+  register: argocd_pods
+  until: argocd_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == argocd_pods.resources | length
+  retries: 30
+  delay: 10
+
 - name: Load ArgoCD apps manifest from file
   set_fact:
     argocd_manifest: "{{ lookup('file', './roles/argocd/files/argo-apps.yaml') | from_yaml }}"

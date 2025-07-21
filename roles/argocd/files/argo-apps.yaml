@@ -18,9 +18,7 @@ spec:
       source:
         repoURL: https://github.com/santiagovarela86/lab-cluster-gitops.git
         targetRevision: HEAD
-        path: '{{path}}'        
-        kustomize:
-          enableHelm: true
+        path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{path.basename}}'
