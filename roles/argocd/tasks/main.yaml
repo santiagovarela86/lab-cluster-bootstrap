@@ -46,7 +46,7 @@
   set_fact:
     argocd_manifest: "{{ lookup('file', './roles/argocd/files/argo-apps.yaml') | from_yaml }}"
 
-- name: Apply ArgoCD apps manifest using Ansible k8s module (idempotent)
+- name: Apply ArgoCD apps manifest
   kubernetes.core.k8s:
     kubeconfig: /etc/rancher/k3s/k3s.yaml
     state: present
